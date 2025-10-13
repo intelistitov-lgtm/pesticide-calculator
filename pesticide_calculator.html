@@ -1,0 +1,676 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Калькулятор нормы расхода пестицидов</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+            border-radius: 20px;
+            padding: 30px;
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1);
+        }
+
+        h1 {
+            text-align: center;
+            color: #333;
+            margin-bottom: 30px;
+            font-size: 2.2em;
+            text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.1);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 15px;
+        }
+
+        .logo {
+            height: 60px;
+            width: auto;
+            filter: drop-shadow(2px 2px 4px rgba(0, 0, 0, 0.1));
+        }
+
+        .form-group {
+            margin-bottom: 25px;
+        }
+
+        label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: 600;
+            color: #444;
+            font-size: 1.1em;
+        }
+
+        select, input[type="number"] {
+            width: 100%;
+            padding: 12px 15px;
+            border: 2px solid #ddd;
+            border-radius: 10px;
+            font-size: 16px;
+            transition: all 0.3s ease;
+            background: white;
+        }
+
+        select:focus, input[type="number"]:focus {
+            outline: none;
+            border-color: #667eea;
+            box-shadow: 0 0 10px rgba(102, 126, 234, 0.3);
+            transform: translateY(-2px);
+        }
+
+        .area-input-group {
+            display: grid;
+            grid-template-columns: 2fr 1fr;
+            gap: 10px;
+            align-items: end;
+        }
+
+        .calculate-btn, .buy-btn {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            padding: 15px 30px;
+            font-size: 18px;
+            border-radius: 10px;
+            cursor: pointer;
+            width: 100%;
+            margin-top: 20px;
+            transition: all 0.3s ease;
+            font-weight: 600;
+            text-decoration: none;
+            display: inline-block;
+            text-align: center;
+        }
+
+        .calculate-btn:hover, .buy-btn:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 10px 30px rgba(102, 126, 234, 0.4);
+        }
+
+        .calculate-btn:active, .buy-btn:active {
+            transform: translateY(-1px);
+        }
+
+        .buy-btn {
+            background: linear-gradient(135deg, #28a745 0%, #20c997 100%);
+            margin-top: 15px;
+        }
+
+        .buy-btn:hover {
+            box-shadow: 0 10px 30px rgba(40, 167, 69, 0.4);
+        }
+
+        .results {
+            margin-top: 30px;
+            padding: 25px;
+            background: linear-gradient(135deg, #a8edea 0%, #fed6e3 100%);
+            border-radius: 15px;
+            border-left: 5px solid #667eea;
+            display: none;
+        }
+
+        .results.show {
+            display: block;
+            animation: fadeInUp 0.5s ease;
+        }
+
+        @keyframes fadeInUp {
+            from {
+                opacity: 0;
+                transform: translateY(20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .results h3 {
+            color: #333;
+            margin-bottom: 20px;
+            font-size: 1.5em;
+        }
+
+        .result-item {
+            background: rgba(255, 255, 255, 0.7);
+            padding: 15px;
+            margin-bottom: 10px;
+            border-radius: 10px;
+            border-left: 4px solid #667eea;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .result-item:last-child {
+            margin-bottom: 0;
+        }
+
+        .result-label {
+            font-weight: 600;
+            color: #333;
+        }
+
+        .result-value {
+            font-weight: bold;
+            color: #667eea;
+            font-size: 1.1em;
+        }
+
+        .info-text, .features-text {
+            background: rgba(102, 126, 234, 0.1);
+            padding: 15px;
+            border-radius: 10px;
+            margin-top: 15px;
+            font-size: 0.9em;
+            color: #555;
+            border-left: 4px solid #667eea;
+        }
+
+        .warning-text {
+            color: #dc3545;
+            font-weight: 600;
+            text-align: center;
+            margin-top: 20px;
+            font-size: 0.95em;
+        }
+
+        .contact-text {
+            color: #666;
+            text-align: center;
+            margin-top: 10px;
+            font-size: 0.9em;
+        }
+
+        .disabled {
+            opacity: 0.5;
+            pointer-events: none;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>
+            <a href="https://xn--24-6kcm9cahf7e.xn--p1ai/" target="_blank">
+                <img src="https://static.insales-cdn.com/files/1/6761/99629673/original/logo_agro_shop.png" alt="Агрошоп24 Логотип" class="logo">
+            </a>
+            Калькулятор нормы расхода пестицидов
+        </h1>
+        
+        <form id="calculatorForm">
+            <div class="form-group">
+                <label for="category">1. Категория пестицидов:</label>
+                <select id="category" required disabled>
+                    <option value="">Выберите категорию</option>
+                </select>
+            </div>
+
+            <div class="form-group">
+                <label for="pesticide">2. Наименование препарата:</label>
+                <select id="pesticide" required disabled>
+                    <option value="">Сначала выберите категорию</option>
+                </select>
+            </div>
+
+            <div class="form-group">
+                <label for="culture">3. Культура, обрабатываемый объект:</label>
+                <select id="culture" required disabled>
+                    <option value="">Сначала выберите препарат</option>
+                </select>
+            </div>
+
+            <div class="form-group">
+                <label for="harmfulObject">4. Вредный объект:</label>
+                <select id="harmfulObject" required disabled>
+                    <option value="">Сначала выберите культуру</option>
+                </select>
+            </div>
+
+            <div class="form-group">
+                <label for="intensity">5. Концентрация препарата:</label>
+                <select id="intensity" required disabled>
+                    <option value="">Сначала выберите вредный объект</option>
+                </select>
+            </div>
+
+            <div class="form-group">
+                <label for="area">6. Площадь обработки:</label>
+                <div class="area-input-group">
+                    <input type="number" id="area" step="0.01" min="0.01" required>
+                    <select id="areaUnit">
+                        <option value="ha">га</option>
+                        <option value="m2">м²</option>
+                        <option value="sotka">сотки</option>
+                    </select>
+                </div>
+            </div>
+
+            <div class="form-group">
+                <label for="tankVolume">7. Объем бака опрыскивателя (л):</label>
+                <input type="number" id="tankVolume" step="0.1" min="0.1" required>
+            </div>
+
+            <button type="submit" class="calculate-btn">Рассчитать</button>
+        </form>
+
+        <div id="results" class="results">
+            <h3>📊 Результаты расчета:</h3>
+            <div class="result-item">
+                <span class="result-label">Необходимое количество препарата:</span>
+                <span id="totalPesticide" class="result-value">-</span>
+            </div>
+            <div class="result-item">
+                <span class="result-label">Необходимое количество раствора:</span>
+                <span id="totalSolution" class="result-value">-</span>
+            </div>
+            <div class="result-item">
+                <span class="result-label">Количество заправок бака:</span>
+                <span id="tankRefills" class="result-value">-</span>
+            </div>
+            <div class="result-item">
+                <span class="result-label">Препарата на одну заправку:</span>
+                <span id="pesticidePerTank" class="result-value">-</span>
+            </div>
+            <div class="features-text" id="applicationFeatures">
+                Особенности применения появятся после расчета
+            </div>
+            <div class="info-text" id="additionalInfo">
+                Дополнительная информация появится после расчета
+            </div>
+            <div class="info-text" id="analogsInfo">
+                Информация об аналогах появится после расчета
+            </div>
+            <a id="buyButton" href="#" target="_blank" class="buy-btn" style="display: none;">
+                🛒 Купить препарат
+            </a>
+            
+            <div class="warning-text">
+                ⚠️ Приложение работает в тестовом режиме! Обязательно проверяйте полученные данные перед проведением обработки
+            </div>
+            <div class="contact-text">
+                Комментарии, предложения и пожелания по работе калькулятора можно присылать на agroshop-24@yandex.ru с пометкой "Калькулятор нормы расхода пестицидов"
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // База данных пестицидов из PDF файла
+        // Новый способ загрузки данных из CSV
+        let pesticideData = {}; // глобальный объект данных
+
+        // Функция заполнения категорий
+        function populateCategories() {
+            const categories = new Set();
+            for (const product in pesticideData) {
+                categories.add(pesticideData[product].category);
+            }
+
+            categorySelect.innerHTML = '<option value="">Выберите категорию</option>';
+            categories.forEach(cat => {
+                const option = document.createElement('option');
+                option.value = cat;
+                option.textContent = cat;
+                categorySelect.appendChild(option);
+            });
+
+            categorySelect.disabled = false;
+        }
+
+        // Загрузка данных из data.json
+        async function loadJSON() {
+            try {
+                const response = await fetch('data.json'); // файл рядом с HTML
+                if (!response.ok) throw new Error('Не удалось загрузить data.json');
+                pesticideData = await response.json();
+                populateCategories();
+                console.log('Данные загружены из JSON:', pesticideData);
+            } catch (error) {
+                console.error(error);
+            }
+        }
+
+        // DOM элементы
+        const categorySelect = document.getElementById('category');
+        const pesticideSelect = document.getElementById('pesticide');
+        const cultureSelect = document.getElementById('culture');
+        const harmfulObjectSelect = document.getElementById('harmfulObject');
+        const intensitySelect = document.getElementById('intensity');
+        const areaInput = document.getElementById('area');
+        const areaUnitSelect = document.getElementById('areaUnit');
+        const tankVolumeInput = document.getElementById('tankVolume');
+        const resultsDiv = document.getElementById('results');
+        const form = document.getElementById('calculatorForm');
+        const buyButton = document.getElementById('buyButton');
+
+        // Интенсивность обработки
+        const intensityOptions = {
+            'minimum': { label: 'Минимум', value: 'minimum' },
+            'medium': { label: 'Среднее', value: 'medium' },
+            'maximum': { label: 'Максимум', value: 'maximum' }
+        };
+
+        // Обработчики событий
+        categorySelect.addEventListener('change', updatePesticideOptions);
+        pesticideSelect.addEventListener('change', updateCultureOptions);
+        cultureSelect.addEventListener('change', updateHarmfulObjectOptions);
+        harmfulObjectSelect.addEventListener('change', updateIntensityOptions);
+        form.addEventListener('submit', calculateResults);
+
+        function updatePesticideOptions() {
+            const category = categorySelect.value;
+            pesticideSelect.innerHTML = '<option value="">Выберите препарат</option>';
+            cultureSelect.innerHTML = '<option value="">Сначала выберите препарат</option>';
+            harmfulObjectSelect.innerHTML = '<option value="">Сначала выберите культуру</option>';
+            intensitySelect.innerHTML = '<option value="">Сначала выберите вредный объект</option>';
+            
+            if (category) {
+                pesticideSelect.disabled = false;
+                const pesticides = Object.keys(pesticideData).filter(key => pesticideData[key].category === category).sort();
+                
+                for (const pesticide of pesticides) {
+                    const option = document.createElement('option');
+                    option.value = pesticide;
+                    option.textContent = pesticide;
+                    pesticideSelect.appendChild(option);
+                }
+            } else {
+                pesticideSelect.disabled = true;
+                cultureSelect.disabled = true;
+                harmfulObjectSelect.disabled = true;
+                intensitySelect.disabled = true;
+            }
+        }
+
+        function updateCultureOptions() {
+            const pesticide = pesticideSelect.value;
+            cultureSelect.innerHTML = '<option value="">Выберите культуру/объект</option>';
+            harmfulObjectSelect.innerHTML = '<option value="">Сначала выберите культуру</option>';
+            intensitySelect.innerHTML = '<option value="">Сначала выберите вредный объект</option>';
+            
+            if (pesticide && pesticideData[pesticide]) {
+                cultureSelect.disabled = false;
+                const cultures = Object.keys(pesticideData[pesticide].cultures).sort();
+                
+                for (const culture of cultures) {
+                    const option = document.createElement('option');
+                    option.value = culture;
+                    option.textContent = culture;
+                    cultureSelect.appendChild(option);
+                }
+            } else {
+                cultureSelect.disabled = true;
+                harmfulObjectSelect.disabled = true;
+                intensitySelect.disabled = true;
+            }
+        }
+
+        function updateHarmfulObjectOptions() {
+            const pesticide = pesticideSelect.value;
+            const culture = cultureSelect.value;
+            harmfulObjectSelect.innerHTML = '<option value="">Выберите вредный объект</option>';
+            intensitySelect.innerHTML = '<option value="">Сначала выберите вредный объект</option>';
+            
+            if (pesticide && culture && pesticideData[pesticide].cultures[culture]) {
+                harmfulObjectSelect.disabled = false;
+                const harmfulObjects = Object.keys(pesticideData[pesticide].cultures[culture]).sort();
+                
+                for (const harmfulObject of harmfulObjects) {
+                    const option = document.createElement('option');
+                    option.value = harmfulObject;
+                    option.textContent = harmfulObject;
+                    harmfulObjectSelect.appendChild(option);
+                }
+            } else {
+                harmfulObjectSelect.disabled = true;
+                intensitySelect.disabled = true;
+            }
+        }
+
+        function updateIntensityOptions() {
+            const harmfulObject = harmfulObjectSelect.value;
+            intensitySelect.innerHTML = '<option value="">Выберите интенсивность обработки</option>';
+            
+            if (harmfulObject) {
+                intensitySelect.disabled = false;
+                
+                for (const intensity in intensityOptions) {
+                    const option = document.createElement('option');
+                    option.value = intensity;
+                    option.textContent = intensityOptions[intensity].label;
+                    intensitySelect.appendChild(option);
+                }
+            } else {
+                intensitySelect.disabled = true;
+            }
+        }
+
+        function convertAreaToHa(area, unit) {
+            switch (unit) {
+                case 'ha': return area;
+                case 'm2': return area / 10000;
+                case 'sotka': return area / 100;
+                default: return area;
+            }
+        }
+
+        function formatArea(area, unit) {
+            switch (unit) {
+                case 'ha': return `${area} га`;
+                case 'm2': return `${area} м²`;
+                case 'sotka': return `${area} соток`;
+                default: return `${area} ${unit}`;
+            }
+        }
+
+        function calculateIntensityValues(objectData, intensity) {
+            let rate, liquidRate;
+            
+            switch (intensity) {
+                case 'minimum':
+                    rate = objectData.minRate;
+                    liquidRate = objectData.maxLiquid; // Максимальная жидкость для минимума
+                    break;
+                case 'maximum':
+                    rate = objectData.maxRate;
+                    liquidRate = objectData.minLiquid; // Минимальная жидкость для максимума
+                    break;
+                case 'medium':
+                default:
+                    rate = objectData.avgRate;
+                    liquidRate = objectData.avgLiquid;
+                    break;
+            }
+            
+            return { rate, liquidRate };
+        }
+
+        function calculateResults(e) {
+            e.preventDefault();
+            
+            const category = categorySelect.value;
+            const pesticide = pesticideSelect.value;
+            const culture = cultureSelect.value;
+            const harmfulObject = harmfulObjectSelect.value;
+            const intensity = intensitySelect.value;
+            const area = parseFloat(areaInput.value);
+            const areaUnit = areaUnitSelect.value;
+            const tankVolume = parseFloat(tankVolumeInput.value);
+            
+            if (!category || !pesticide || !culture || !harmfulObject || !intensity || !area || !tankVolume) {
+                alert('Пожалуйста, заполните все поля');
+                return;
+            }
+            
+            const objectData = pesticideData[pesticide].cultures[culture][harmfulObject];
+            const { rate, liquidRate } = calculateIntensityValues(objectData, intensity);
+            const areaInHa = convertAreaToHa(area, areaUnit);
+            
+            // Расчет препарата и раствора
+            const totalPesticide = areaInHa * rate;
+            const totalSolution = areaInHa * liquidRate;
+            
+            // Определение единицы измерения препарата
+            const isKg = objectData.unit.includes('кг');
+            
+            // Расчет количества заправок и препарата на заправку
+            const tankRefills = Math.ceil(totalSolution / tankVolume);
+            const pesticidePerTank = totalPesticide / tankRefills;
+            
+            // Функция для форматирования количества препарата с правильными единицами
+            function formatPesticideAmount(amount, isKg) {
+                if (amount < 1) {
+                    // Конвертируем в мл/мг
+                    const smallAmount = amount * 1000;
+                    const unit = isKg ? 'мг' : 'мл';
+                    return `${smallAmount.toFixed(1)} ${unit}`;
+                } else {
+                    // Оставляем в кг/л
+                    const unit = isKg ? 'кг' : 'л';
+                    return `${amount.toFixed(3)} ${unit}`;
+                }
+            }
+            
+            // Функция для склонения слова "год"
+            function getYearWord(years) {
+                if (years % 10 === 1 && years % 100 !== 11) {
+                    return 'год';
+                } else if ([2, 3, 4].includes(years % 10) && ![12, 13, 14].includes(years % 100)) {
+                    return 'года';
+                } else {
+                    return 'лет';
+                }
+            }
+            
+            // Отображение результатов
+            document.getElementById('totalPesticide').textContent = 
+                formatPesticideAmount(totalPesticide, isKg);
+            document.getElementById('totalSolution').textContent = 
+                `${totalSolution.toFixed(1)} л`;
+            document.getElementById('tankRefills').textContent = 
+                `${tankRefills} ${tankRefills === 1 ? 'заправка' : 'заправок'}`;
+            document.getElementById('pesticidePerTank').textContent = 
+                formatPesticideAmount(pesticidePerTank, isKg);
+                
+            // Расчет нормы расхода на 10л жидкости
+            let rateFor10L, rateUnit;
+            if (objectData.unit.includes('кг')) {
+                rateFor10L = (rate / liquidRate * 1000) * 10; // в граммах
+                rateUnit = 'г/10 л';
+            } else {
+                rateFor10L = (rate / liquidRate * 1000) * 10; // в мл
+                rateUnit = 'мл/10 л';
+            }
+            
+            // Поиск аналогов
+            const pesticideInfo = pesticideData[pesticide];
+
+            const currentIngredients = pesticideInfo.activeIngredients; // объект { вещество: концентрация }
+
+            const fullAnalogs = [];
+            const differentConcentrationAnalogs = [];
+
+            for (const productName in pesticideData) {
+                if (productName === pesticide) continue; // Пропускаем сам препарат
+                const product = pesticideData[productName];
+                const ingredients = product.activeIngredients;
+
+                // Сравниваем наборы действующих веществ
+                const currentKeys = Object.keys(currentIngredients).sort();
+                const otherKeys = Object.keys(ingredients).sort();
+                
+                const sameIngredients = JSON.stringify(currentKeys) === JSON.stringify(otherKeys);
+
+                if (sameIngredients) {
+                    // Проверяем концентрации
+                    let allSame = true;
+                    for (const key of currentKeys) {
+                        if (currentIngredients[key] !== ingredients[key]) {
+                            allSame = false;
+                            break;
+                        }
+                    }
+                    if (allSame) fullAnalogs.push({ name: productName, url: product.url });
+                    else differentConcentrationAnalogs.push({ name: productName, url: product.url });
+                }
+            }
+                
+            // Особенности применения
+            const applicationFeatures = document.getElementById('applicationFeatures');
+            applicationFeatures.innerHTML = `
+                <strong>Особенности применения:</strong><br>
+                ${objectData.features}<br><br>
+                • Норма расхода: ${rateFor10L.toFixed(1)} ${rateUnit}<br>
+                • Расход рабочей жидкости: ${liquidRate.toFixed(0)} л/га<br>
+                • Обрабатываемая площадь: ${formatArea(area, areaUnit)}
+            `;
+            
+            // Дополнительная информация
+            const additionalInfo = document.getElementById('additionalInfo');
+            const packagingUnit = isKg ? 'кг' : 'л';
+            const concentrationUnit = isKg ? 'г/кг' : 'г/л';
+            const ingredientsList = Object.entries(pesticideInfo.activeIngredients)
+                .map(([name, conc]) => `${name} ${conc} ${concentrationUnit}`)
+                .join(', ');
+            additionalInfo.innerHTML = `
+                <strong>Информация о препарате:</strong><br>
+                • Форма: ${pesticideInfo.form}<br>
+                • Действующее вещество: ${ingredientsList}<br>
+                • Производитель: ${pesticideInfo.manufactory}<br>
+                • Срок годности: ${pesticideInfo.expirationDate} ${getYearWord(pesticideInfo.expirationDate)}<br>
+                • Упаковка: ${pesticideInfo.packaging} ${packagingUnit}
+            `;
+            
+            // Информация об аналогах
+            const analogsInfo = document.getElementById('analogsInfo');
+            let analogsHTML = '<strong>Аналоги:</strong><br>';
+            
+            if (fullAnalogs.length > 0) {
+                const analogLinks = fullAnalogs.map(analog => 
+                    `<a href="${analog.url}" target="_blank" style="color: #667eea; text-decoration: underline;">${analog.name}</a>`
+                ).join(', ');
+                analogsHTML += `• Полные аналоги: ${analogLinks}<br>`;
+            } else {
+                analogsHTML += '• Полные аналоги: не найдены<br>';
+            }
+            
+            if (differentConcentrationAnalogs.length > 0) {
+                const analogLinks = differentConcentrationAnalogs.map(analog => 
+                    `<a href="${analog.url}" target="_blank" style="color: #667eea; text-decoration: underline;">${analog.name}</a>`
+                ).join(', ');
+                analogsHTML += `• Разноконцентрированные аналоги: ${analogLinks}`;
+            } else {
+                analogsHTML += '• Разноконцентрированные аналоги: не найдены';
+            }
+            
+            analogsInfo.innerHTML = analogsHTML;
+            
+            // Кнопка покупки
+            buyButton.href = pesticideInfo.url;
+            buyButton.style.display = 'block';
+            
+            resultsDiv.classList.add('show');
+            resultsDiv.scrollIntoView({ behavior: 'smooth' });
+        }
+    
+        // вызов загрузки
+        loadJSON();
+    </script>
+</body>
+</html>
