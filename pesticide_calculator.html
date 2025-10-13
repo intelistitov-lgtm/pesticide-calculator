@@ -288,6 +288,10 @@
                 <span class="result-label">Препарата на одну заправку:</span>
                 <span id="pesticidePerTank" class="result-value">-</span>
             </div>
+            <div class="result-item">
+                <span class="result-label">Стоимость обработки:</span>
+                <span id="treatmentCost" class="result-value">-</span>
+            </div>
             <div class="features-text" id="applicationFeatures">
                 Особенности применения появятся после расчета
             </div>
@@ -358,6 +362,21 @@
         const resultsDiv = document.getElementById('results');
         const form = document.getElementById('calculatorForm');
         const buyButton = document.getElementById('buyButton');
+        const treatmentCostElement = document.getElementById('treatmentCost');
+
+        async function fetchProductPrice(productUrl) {
+            if (!productUrl) return null;
+            try {
+                const response = await fetch(`${productUrl}.json`);
+                if (!response.ok) throw new Error(`Не удалось получить цену для ${productUrl}`);
+                const data = await response.json();
+                const price = Number(data?.price);
+                return Number.isFinite(price) ? price : null;
+            } catch (error) {
+                console.error('Ошибка при получении цены препарата:', error);
+                return null;
+            }
+        }
 
         // Интенсивность обработки
         const intensityOptions = {
@@ -501,7 +520,7 @@
             return { rate, liquidRate };
         }
 
-        function calculateResults(e) {
+        async function calculateResults(e) {
             e.preventDefault();
             
             const category = categorySelect.value;
@@ -518,7 +537,8 @@
                 return;
             }
             
-            const objectData = pesticideData[pesticide].cultures[culture][harmfulObject];
+            const pesticideInfo = pesticideData[pesticide];
+            const objectData = pesticideInfo.cultures[culture][harmfulObject];
             const { rate, liquidRate } = calculateIntensityValues(objectData, intensity);
             const areaInHa = convertAreaToHa(area, areaUnit);
             
@@ -565,8 +585,22 @@
                 `${totalSolution.toFixed(1)} л`;
             document.getElementById('tankRefills').textContent = 
                 `${tankRefills} ${tankRefills === 1 ? 'заправка' : 'заправок'}`;
-            document.getElementById('pesticidePerTank').textContent = 
+            document.getElementById('pesticidePerTank').textContent =
                 formatPesticideAmount(pesticidePerTank, isKg);
+
+            // Стоимость обработки
+            treatmentCostElement.textContent = '—';
+            const packagingVolume = Number(pesticideInfo.packaging);
+            const pricePerPackage = await fetchProductPrice(pesticideInfo.url);
+
+            if (Number.isFinite(packagingVolume) && packagingVolume > 0 && pricePerPackage !== null) {
+                const pricePerUnit = pricePerPackage / packagingVolume;
+                const costPerTank = pesticidePerTank * pricePerUnit;
+                const totalCost = costPerTank * tankRefills;
+                treatmentCostElement.textContent = `${totalCost.toFixed(2)} ₽`;
+            } else {
+                treatmentCostElement.textContent = 'н/д';
+            }
                 
             // Расчет нормы расхода на 10л жидкости
             let rateFor10L, rateUnit;
@@ -579,8 +613,6 @@
             }
             
             // Поиск аналогов
-            const pesticideInfo = pesticideData[pesticide];
-
             const currentIngredients = pesticideInfo.activeIngredients; // объект { вещество: концентрация }
 
             const fullAnalogs = [];
