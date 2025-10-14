@@ -370,7 +370,7 @@
                 const response = await fetch(`${productUrl}.json`);
                 if (!response.ok) throw new Error(`Не удалось получить цену для ${productUrl}`);
                 const data = await response.json();
-                const price = Number(data?.price);
+                const price = Number(data?.product?.price_min);
                 return Number.isFinite(price) ? price : null;
             } catch (error) {
                 console.error('Ошибка при получении цены препарата:', error);
