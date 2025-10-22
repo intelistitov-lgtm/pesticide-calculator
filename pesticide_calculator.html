@@ -601,6 +601,27 @@
                 return 'MoA - код';
             }
 
+            function normalizeFormValue(formValue) {
+                if (!formValue) return '';
+
+                const normalized = formValue
+                    .toString()
+                    .trim()
+                    .toLowerCase()
+                    .replace(/\s+/g, ' ');
+
+                const formSynonyms = {
+                    'кс (концентрат суспензии)': 'кс/ск (концентрат суспензии)',
+                    'ск (суспензионный концентрат)': 'кс/ск (концентрат суспензии)'
+                };
+
+                return formSynonyms[normalized] || normalized;
+            }
+
+            function formsAreEquivalent(formA, formB) {
+                return normalizeFormValue(formA) === normalizeFormValue(formB);
+            }
+
             // Отображение результатов
             document.getElementById('totalPesticide').textContent =
                 formatPesticideAmount(totalPesticide, isKg);
@@ -640,15 +661,18 @@
 
             const fullAnalogs = [];
             const differentConcentrationAnalogs = [];
+            const similarProducts = [];
             const alternatives = [];
 
             const currentMoAValues = normalizeMoAValues(pesticideInfo.moA);
             const currentCategory = (pesticideInfo.category || objectData.category || '').toLowerCase();
+            const currentForm = normalizeFormValue(pesticideInfo.form);
 
             for (const productName in pesticideData) {
                 if (productName === pesticide) continue; // Пропускаем сам препарат
                 const product = pesticideData[productName];
                 const ingredients = product.activeIngredients || {};
+                const productForm = normalizeFormValue(product.form);
 
                 // Сравниваем наборы действующих веществ
                 const currentKeys = Object.keys(currentIngredients).sort();
@@ -665,8 +689,15 @@
                             break;
                         }
                     }
-                    if (allSame) fullAnalogs.push({ name: productName, url: product.url });
-                    else differentConcentrationAnalogs.push({ name: productName, url: product.url });
+                    if (formsAreEquivalent(currentForm, productForm)) {
+                        if (allSame) {
+                            fullAnalogs.push({ name: productName, url: product.url });
+                        } else {
+                            differentConcentrationAnalogs.push({ name: productName, url: product.url });
+                        }
+                    } else {
+                        similarProducts.push({ name: productName, url: product.url });
+                    }
                 } else {
                     const productCategory = (product.category || '').toLowerCase();
                     const productMoAValues = normalizeMoAValues(product.moA);
@@ -720,27 +751,36 @@
                 const analogLinks = fullAnalogs.map(analog =>
                     `<a href="${analog.url}" target="_blank" style="color: #667eea; text-decoration: underline;">${analog.name}</a>`
                 ).join(', ');
-                analogsHTML += `• Полные аналоги: ${analogLinks}<br>`;
+                analogsHTML += `• 🟢 Полные аналоги: ${analogLinks}<br>`;
             } else {
-                analogsHTML += '• Полные аналоги: не найдены<br>';
+                analogsHTML += '• 🟢 Полные аналоги: не найдены<br>';
             }
 
             if (differentConcentrationAnalogs.length > 0) {
                 const analogLinks = differentConcentrationAnalogs.map(analog =>
                     `<a href="${analog.url}" target="_blank" style="color: #667eea; text-decoration: underline;">${analog.name}</a>`
                 ).join(', ');
-                analogsHTML += `• Разноконцентрированные аналоги: ${analogLinks}<br>`;
+                analogsHTML += `• 🟡 Разноконцентрированные аналоги: ${analogLinks}<br>`;
             } else {
-                analogsHTML += '• Разноконцентрированные аналоги: не найдены<br>';
+                analogsHTML += '• 🟡 Разноконцентрированные аналоги: не найдены<br>';
+            }
+
+            if (similarProducts.length > 0) {
+                const similarLinks = similarProducts.map(analog =>
+                    `<a href="${analog.url}" target="_blank" style="color: #667eea; text-decoration: underline;">${analog.name}</a>`
+                ).join(', ');
+                analogsHTML += `• 🟠 Схожие препараты: ${similarLinks}<br>`;
+            } else {
+                analogsHTML += '• 🟠 Схожие препараты: не найдены<br>';
             }
 
             if (alternatives.length > 0) {
                 const alternativeLinks = alternatives.map(analog =>
                     `<a href="${analog.url}" target="_blank" style="color: #667eea; text-decoration: underline;">${analog.name}</a>`
                 ).join(', ');
-                analogsHTML += `• Альтернативы: ${alternativeLinks}`;
+                analogsHTML += `• 🔴 Альтернатива: ${alternativeLinks}`;
             } else {
-                analogsHTML += '• Альтернативы: не найдены';
+                analogsHTML += '• 🔴 Альтернатива: не найдены';
             }
 
             analogsInfo.innerHTML = analogsHTML;
