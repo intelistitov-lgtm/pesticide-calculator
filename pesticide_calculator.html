@@ -533,7 +533,7 @@
             // Расчет препарата и раствора
             const totalPesticide = areaInHa * rate;
             const totalSolution = areaInHa * liquidRate;
-            
+
             // Определение единицы измерения препарата
             const isKg = objectData.unit.includes('кг');
             
@@ -565,11 +565,46 @@
                     return 'лет';
                 }
             }
-            
+
+            function normalizeMoAValues(value) {
+                if (value === null || value === undefined) return [];
+                if (Array.isArray(value)) {
+                    return value.map(v => v.toString().trim()).filter(Boolean).sort();
+                }
+
+                const stringValue = value.toString();
+                return stringValue
+                    .split(/[;,\/]+/)
+                    .map(v => v.trim())
+                    .filter(Boolean)
+                    .sort();
+            }
+
+            function formatMoAValues(value) {
+                if (value === null || value === undefined) return '—';
+                if (Array.isArray(value)) return value.join(', ');
+                return value.toString();
+            }
+
+            function arraysEqual(arr1, arr2) {
+                if (arr1.length !== arr2.length) return false;
+                return arr1.every((value, index) => value === arr2[index]);
+            }
+
+            function getMoALabelByCategory(categoryName) {
+                const normalized = (categoryName || '').toLowerCase();
+
+                if (normalized.includes('фунгиц')) return 'FRAC - код';
+                if (normalized.includes('инсектиц')) return 'IRAC - код';
+                if (normalized.includes('гербиц')) return 'HRAC - код';
+
+                return 'MoA - код';
+            }
+
             // Отображение результатов
-            document.getElementById('totalPesticide').textContent = 
+            document.getElementById('totalPesticide').textContent =
                 formatPesticideAmount(totalPesticide, isKg);
-            document.getElementById('totalSolution').textContent = 
+            document.getElementById('totalSolution').textContent =
                 `${totalSolution.toFixed(1)} л`;
             document.getElementById('tankRefills').textContent = 
                 `${tankRefills} ${tankRefills === 1 ? 'заправка' : 'заправок'}`;
@@ -599,22 +634,26 @@
                 rateFor10L = (rate / liquidRate * 1000) * 10; // в мл
                 rateUnit = 'мл/10 л';
             }
-            
+
             // Поиск аналогов
-            const currentIngredients = pesticideInfo.activeIngredients; // объект { вещество: концентрация }
+            const currentIngredients = pesticideInfo.activeIngredients || {}; // объект { вещество: концентрация }
 
             const fullAnalogs = [];
             const differentConcentrationAnalogs = [];
+            const alternatives = [];
+
+            const currentMoAValues = normalizeMoAValues(pesticideInfo.moA);
+            const currentCategory = (pesticideInfo.category || objectData.category || '').toLowerCase();
 
             for (const productName in pesticideData) {
                 if (productName === pesticide) continue; // Пропускаем сам препарат
                 const product = pesticideData[productName];
-                const ingredients = product.activeIngredients;
+                const ingredients = product.activeIngredients || {};
 
                 // Сравниваем наборы действующих веществ
                 const currentKeys = Object.keys(currentIngredients).sort();
                 const otherKeys = Object.keys(ingredients).sort();
-                
+
                 const sameIngredients = JSON.stringify(currentKeys) === JSON.stringify(otherKeys);
 
                 if (sameIngredients) {
@@ -628,9 +667,18 @@
                     }
                     if (allSame) fullAnalogs.push({ name: productName, url: product.url });
                     else differentConcentrationAnalogs.push({ name: productName, url: product.url });
+                } else {
+                    const productCategory = (product.category || '').toLowerCase();
+                    const productMoAValues = normalizeMoAValues(product.moA);
+                    const sameCategory = currentCategory && productCategory === currentCategory;
+                    const sameMoA = currentMoAValues.length > 0 && arraysEqual(currentMoAValues, productMoAValues);
+
+                    if (sameCategory && sameMoA && productMoAValues.length > 0) {
+                        alternatives.push({ name: productName, url: product.url });
+                    }
                 }
             }
-                
+
             // Особенности применения
             const applicationFeatures = document.getElementById('applicationFeatures');
             applicationFeatures.innerHTML = `
@@ -645,40 +693,56 @@
             const additionalInfo = document.getElementById('additionalInfo');
             const packagingUnit = isKg ? 'кг' : 'л';
             const concentrationUnit = isKg ? 'г/кг' : 'г/л';
-            const ingredientsList = Object.entries(pesticideInfo.activeIngredients)
+            const activeIngredientsData = pesticideInfo.activeIngredients || {};
+            const ingredientsList = Object.entries(activeIngredientsData)
                 .map(([name, conc]) => `${name} ${conc} ${concentrationUnit}`)
                 .join(', ');
+            const ingredientsText = ingredientsList || '—';
+            const chemicalClass = pesticideInfo.chemicalClass || pesticideInfo.chemicalСlass || '—';
+            const moALabel = getMoALabelByCategory(pesticideInfo.category || objectData.category || '');
+            const moAFormatted = formatMoAValues(pesticideInfo.moA);
             additionalInfo.innerHTML = `
                 <strong>Информация о препарате:</strong><br>
                 • Форма: ${pesticideInfo.form}<br>
-                • Действующее вещество: ${ingredientsList}<br>
+                • Действующее вещество: ${ingredientsText}<br>
+                • Химический класс: ${chemicalClass}<br>
+                • ${moALabel}: ${moAFormatted}<br>
                 • Производитель: ${pesticideInfo.manufactory}<br>
                 • Срок годности: ${pesticideInfo.expirationDate} ${getYearWord(pesticideInfo.expirationDate)}<br>
                 • Упаковка: ${pesticideInfo.packaging} ${packagingUnit}
             `;
-            
+
             // Информация об аналогах
             const analogsInfo = document.getElementById('analogsInfo');
-            let analogsHTML = '<strong>Аналоги:</strong><br>';
-            
+            let analogsHTML = '<strong>Аналоги и альтернативы:</strong><br>';
+
             if (fullAnalogs.length > 0) {
-                const analogLinks = fullAnalogs.map(analog => 
+                const analogLinks = fullAnalogs.map(analog =>
                     `<a href="${analog.url}" target="_blank" style="color: #667eea; text-decoration: underline;">${analog.name}</a>`
                 ).join(', ');
                 analogsHTML += `• Полные аналоги: ${analogLinks}<br>`;
             } else {
                 analogsHTML += '• Полные аналоги: не найдены<br>';
             }
-            
+
             if (differentConcentrationAnalogs.length > 0) {
-                const analogLinks = differentConcentrationAnalogs.map(analog => 
+                const analogLinks = differentConcentrationAnalogs.map(analog =>
                     `<a href="${analog.url}" target="_blank" style="color: #667eea; text-decoration: underline;">${analog.name}</a>`
                 ).join(', ');
-                analogsHTML += `• Разноконцентрированные аналоги: ${analogLinks}`;
+                analogsHTML += `• Разноконцентрированные аналоги: ${analogLinks}<br>`;
             } else {
-                analogsHTML += '• Разноконцентрированные аналоги: не найдены';
+                analogsHTML += '• Разноконцентрированные аналоги: не найдены<br>';
             }
-            
+
+            if (alternatives.length > 0) {
+                const alternativeLinks = alternatives.map(analog =>
+                    `<a href="${analog.url}" target="_blank" style="color: #667eea; text-decoration: underline;">${analog.name}</a>`
+                ).join(', ');
+                analogsHTML += `• Альтернативы: ${alternativeLinks}`;
+            } else {
+                analogsHTML += '• Альтернативы: не найдены';
+            }
+
             analogsInfo.innerHTML = analogsHTML;
             
             // Кнопка покупки
