@@ -582,6 +582,20 @@
                 return 'MoA - код';
             }
 
+            function normalizeMoAValue(value) {
+                if (value === null || value === undefined) return '';
+
+                if (Array.isArray(value)) {
+                    return value
+                        .map(item => item?.toString().trim().toLowerCase())
+                        .filter(Boolean)
+                        .sort()
+                        .join('|');
+                }
+
+                return value.toString().trim().toLowerCase();
+            }
+
             function normalizeFormValue(formValue) {
                 if (!formValue) return '';
 
@@ -647,12 +661,14 @@
 
             const currentForm = normalizeFormValue(pesticideInfo.form);
             const currentIngredientKeys = Object.keys(currentIngredients).sort();
+            const currentMoAValue = normalizeMoAValue(pesticideInfo.moA);
 
             for (const productName in pesticideData) {
                 if (productName === pesticide) continue; // Пропускаем сам препарат
                 const product = pesticideData[productName];
                 const ingredients = product.activeIngredients || {};
                 const productForm = normalizeFormValue(product.form);
+                const productMoAValue = normalizeMoAValue(product.moA);
 
                 // Сравниваем наборы действующих веществ
                 const otherKeys = Object.keys(ingredients).sort();
@@ -660,6 +676,7 @@
                 const sameIngredients = JSON.stringify(currentIngredientKeys) === JSON.stringify(otherKeys);
                 const shareAtLeastOneIngredient = currentIngredientKeys.some(key => otherKeys.includes(key));
                 const formsEquivalent = formsAreEquivalent(currentForm, productForm);
+                const moAValuesMatch = currentMoAValue !== '' && currentMoAValue === productMoAValue;
 
                 if (formsEquivalent && sameIngredients) {
                     // Проверяем концентрации
@@ -685,7 +702,7 @@
                     continue;
                 }
 
-                if (shareAtLeastOneIngredient) {
+                if (shareAtLeastOneIngredient && moAValuesMatch) {
                     alternatives.push({ name: productName, url: product.url });
                 }
             }
