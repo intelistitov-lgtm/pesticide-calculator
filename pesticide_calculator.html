@@ -769,18 +769,9 @@
                 const similarLinks = similarProducts.map(analog =>
                     `<a href="${analog.url}" target="_blank" style="color: #667eea; text-decoration: underline;">${analog.name}</a>`
                 ).join(', ');
-                analogsHTML += `• 🟠 Схожие препараты: ${similarLinks}<br>`;
+                analogsHTML += `• 🟠 Альтернативы: ${similarLinks}<br>`;
             } else {
-                analogsHTML += '• 🟠 Схожие препараты: не найдены<br>';
-            }
-
-            if (alternatives.length > 0) {
-                const alternativeLinks = alternatives.map(analog =>
-                    `<a href="${analog.url}" target="_blank" style="color: #667eea; text-decoration: underline;">${analog.name}</a>`
-                ).join(', ');
-                analogsHTML += `• 🔴 Альтернатива: ${alternativeLinks}`;
-            } else {
-                analogsHTML += '• 🔴 Альтернатива: не найдены';
+                analogsHTML += '• 🟠 Альтернативы: не найдены<br>';
             }
 
             analogsInfo.innerHTML = analogsHTML;
