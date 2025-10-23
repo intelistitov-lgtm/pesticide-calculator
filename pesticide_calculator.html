@@ -566,29 +566,10 @@
                 }
             }
 
-            function normalizeMoAValues(value) {
-                if (value === null || value === undefined) return [];
-                if (Array.isArray(value)) {
-                    return value.map(v => v.toString().trim()).filter(Boolean).sort();
-                }
-
-                const stringValue = value.toString();
-                return stringValue
-                    .split(/[;,\/]+/)
-                    .map(v => v.trim())
-                    .filter(Boolean)
-                    .sort();
-            }
-
             function formatMoAValues(value) {
                 if (value === null || value === undefined) return '—';
                 if (Array.isArray(value)) return value.join(', ');
                 return value.toString();
-            }
-
-            function arraysEqual(arr1, arr2) {
-                if (arr1.length !== arr2.length) return false;
-                return arr1.every((value, index) => value === arr2[index]);
             }
 
             function getMoALabelByCategory(categoryName) {
@@ -664,9 +645,8 @@
             const similarPreparations = [];
             const alternatives = [];
 
-            const currentMoAValues = normalizeMoAValues(pesticideInfo.moA);
-            const currentCategory = (pesticideInfo.category || objectData.category || '').toLowerCase();
             const currentForm = normalizeFormValue(pesticideInfo.form);
+            const currentIngredientKeys = Object.keys(currentIngredients).sort();
 
             for (const productName in pesticideData) {
                 if (productName === pesticide) continue; // Пропускаем сам препарат
@@ -675,18 +655,16 @@
                 const productForm = normalizeFormValue(product.form);
 
                 // Сравниваем наборы действующих веществ
-                const currentKeys = Object.keys(currentIngredients).sort();
                 const otherKeys = Object.keys(ingredients).sort();
 
-                const sameIngredients = JSON.stringify(currentKeys) === JSON.stringify(otherKeys);
-                const sharedIngredients = currentKeys.filter(key => otherKeys.includes(key));
-                const shareAtLeastOneIngredient = sharedIngredients.length > 0;
+                const sameIngredients = JSON.stringify(currentIngredientKeys) === JSON.stringify(otherKeys);
+                const shareAtLeastOneIngredient = currentIngredientKeys.some(key => otherKeys.includes(key));
                 const formsEquivalent = formsAreEquivalent(currentForm, productForm);
 
                 if (formsEquivalent && sameIngredients) {
                     // Проверяем концентрации
                     let allSame = true;
-                    for (const key of currentKeys) {
+                    for (const key of currentIngredientKeys) {
                         if (currentIngredients[key] !== ingredients[key]) {
                             allSame = false;
                             break;
@@ -707,17 +685,7 @@
                     continue;
                 }
 
-                if (sameIngredients) {
-                    alternatives.push({ name: productName, url: product.url });
-                    continue;
-                }
-
-                const productCategory = (product.category || '').toLowerCase();
-                const productMoAValues = normalizeMoAValues(product.moA);
-                const sameCategory = currentCategory && productCategory === currentCategory;
-                const sameMoA = currentMoAValues.length > 0 && arraysEqual(currentMoAValues, productMoAValues);
-
-                if (sameCategory && sameMoA && productMoAValues.length > 0) {
+                if (shareAtLeastOneIngredient) {
                     alternatives.push({ name: productName, url: product.url });
                 }
             }
