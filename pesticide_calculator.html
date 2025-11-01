@@ -655,30 +655,24 @@
             const currentIngredients = pesticideInfo.activeIngredients || {}; // объект { вещество: концентрация }
 
             const fullAnalogs = [];
-            const differentConcentrationAnalogs = [];
-            const similarPreparations = [];
-            const alternatives = [];
+            const partialAnalogs = [];
 
             const currentForm = normalizeFormValue(pesticideInfo.form);
             const currentIngredientKeys = Object.keys(currentIngredients).sort();
-            const currentMoAValue = normalizeMoAValue(pesticideInfo.moA);
 
             for (const productName in pesticideData) {
                 if (productName === pesticide) continue; // Пропускаем сам препарат
                 const product = pesticideData[productName];
                 const ingredients = product.activeIngredients || {};
                 const productForm = normalizeFormValue(product.form);
-                const productMoAValue = normalizeMoAValue(product.moA);
 
                 // Сравниваем наборы действующих веществ
                 const otherKeys = Object.keys(ingredients).sort();
 
                 const sameIngredients = JSON.stringify(currentIngredientKeys) === JSON.stringify(otherKeys);
-                const shareAtLeastOneIngredient = currentIngredientKeys.some(key => otherKeys.includes(key));
                 const formsEquivalent = formsAreEquivalent(currentForm, productForm);
-                const moAValuesMatch = currentMoAValue !== '' && currentMoAValue === productMoAValue;
 
-                if (formsEquivalent && sameIngredients) {
+                if (sameIngredients) {
                     // Проверяем концентрации
                     let allSame = true;
                     for (const key of currentIngredientKeys) {
@@ -688,22 +682,13 @@
                         }
                     }
 
-                    if (allSame) {
+                    if (formsEquivalent && allSame) {
                         fullAnalogs.push({ name: productName, url: product.url });
                     } else {
-                        differentConcentrationAnalogs.push({ name: productName, url: product.url });
+                        partialAnalogs.push({ name: productName, url: product.url });
                     }
 
                     continue;
-                }
-
-                if (formsEquivalent && shareAtLeastOneIngredient) {
-                    similarPreparations.push({ name: productName, url: product.url });
-                    continue;
-                }
-
-                if (shareAtLeastOneIngredient && moAValuesMatch) {
-                    alternatives.push({ name: productName, url: product.url });
                 }
             }
 
@@ -742,7 +727,7 @@
 
             // Информация об аналогах
             const analogsInfo = document.getElementById('analogsInfo');
-            let analogsHTML = '<strong>Аналоги и альтернативы:</strong><br>';
+            let analogsHTML = '<strong>Аналоги:</strong><br>';
 
             if (fullAnalogs.length > 0) {
                 const analogLinks = fullAnalogs.map(analog =>
@@ -753,31 +738,13 @@
                 analogsHTML += '• 🟢 Полные аналоги: не найдены<br>';
             }
 
-            if (differentConcentrationAnalogs.length > 0) {
-                const analogLinks = differentConcentrationAnalogs.map(analog =>
+            if (partialAnalogs.length > 0) {
+                const analogLinks = partialAnalogs.map(analog =>
                     `<a href="${analog.url}" target="_blank" style="color: #667eea; text-decoration: underline;">${analog.name}</a>`
                 ).join(', ');
-                analogsHTML += `• 🟡 Разноконцентрированные аналоги: ${analogLinks}<br>`;
+                analogsHTML += `• 🟡 Частичные аналоги: ${analogLinks}<br>`;
             } else {
-                analogsHTML += '• 🟡 Разноконцентрированные аналоги: не найдены<br>';
-            }
-
-            if (similarPreparations.length > 0) {
-                const similarLinks = similarPreparations.map(analog =>
-                    `<a href="${analog.url}" target="_blank" style="color: #667eea; text-decoration: underline;">${analog.name}</a>`
-                ).join(', ');
-                analogsHTML += `• 🟠 Схожие препараты: ${similarLinks}<br>`;
-            } else {
-                analogsHTML += '• 🟠 Схожие препараты: не найдены<br>';
-            }
-
-            if (alternatives.length > 0) {
-                const alternativeLinks = alternatives.map(analog =>
-                    `<a href="${analog.url}" target="_blank" style="color: #667eea; text-decoration: underline;">${analog.name}</a>`
-                ).join(', ');
-                analogsHTML += `• 🔴 Альтернативы: ${alternativeLinks}<br>`;
-            } else {
-                analogsHTML += '• 🔴 Альтернативы: не найдены<br>';
+                analogsHTML += '• 🟡 Частичные аналоги: не найдены<br>';
             }
 
             analogsInfo.innerHTML = analogsHTML;
