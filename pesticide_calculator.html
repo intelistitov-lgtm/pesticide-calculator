@@ -647,6 +647,46 @@
             }
         }
 
+        function getYearWord(years) {
+            if (years % 10 === 1 && years % 100 !== 11) {
+                return 'год';
+            } else if ([2, 3, 4].includes(years % 10) && ![12, 13, 14].includes(years % 100)) {
+                return 'года';
+            } else {
+                return 'лет';
+            }
+        }
+
+        function formatMoAValues(value) {
+            if (value === null || value === undefined) return '—';
+            if (Array.isArray(value)) return value.join(', ');
+            return value.toString();
+        }
+
+        function getMoALabelByCategory(categoryName) {
+            const normalized = (categoryName || '').toLowerCase();
+
+            if (normalized.includes('фунгиц')) return 'FRAC - код';
+            if (normalized.includes('инсектиц')) return 'IRAC - код';
+            if (normalized.includes('гербиц')) return 'HRAC - код';
+
+            return 'MoA - код';
+        }
+
+        function normalizeMoAValue(value) {
+            if (value === null || value === undefined) return '';
+
+            if (Array.isArray(value)) {
+                return value
+                    .map(item => item?.toString().trim().toLowerCase())
+                    .filter(Boolean)
+                    .sort()
+                    .join('|');
+            }
+
+            return value.toString().trim().toLowerCase();
+        }
+
         function calculateIntensityValues(objectData, intensity) {
             let rate, liquidRate;
 
@@ -731,11 +771,19 @@
                 .map(([name, concentration]) => `${name} ${concentration} ${concentrationUnit}`)
                 .join(', ') || '—';
 
+            const chemicalClass = product.chemicalClass || product.chemicalСlass || '—';
+            const moALabel = getMoALabelByCategory(product.category || '');
+            const moAFormatted = formatMoAValues(product.moA);
+            const manufacturer = product.manufactory || '—';
+
             analogModal.dataset.product = productName;
             analogModalTitle.textContent = productName;
             analogModalBody.innerHTML = `
                 <strong>Форма:</strong> ${escapeHtml(product.form || '—')}<br>
                 <strong>Действующие вещества:</strong> ${escapeHtml(ingredientsText)}<br>
+                <strong>Химический класс:</strong> ${escapeHtml(chemicalClass)}<br>
+                <strong>${moALabel}:</strong> ${escapeHtml(moAFormatted)}<br>
+                <strong>Производитель:</strong> ${escapeHtml(manufacturer)}<br>
                 <strong>Упаковка:</strong> ${escapeHtml(packagingText)}
             `;
 
@@ -801,7 +849,7 @@
             // Расчет количества заправок и препарата на заправку
             const tankRefills = Math.ceil(totalSolution / tankVolume);
             const pesticidePerTank = totalPesticide / tankRefills;
-            
+
             // Функция для форматирования количества препарата с правильными единицами
             function formatPesticideAmount(amount, isKg) {
                 if (amount < 1) {
@@ -814,47 +862,6 @@
                     const unit = isKg ? 'кг' : 'л';
                     return `${amount.toFixed(3)} ${unit}`;
                 }
-            }
-            
-            // Функция для склонения слова "год"
-            function getYearWord(years) {
-                if (years % 10 === 1 && years % 100 !== 11) {
-                    return 'год';
-                } else if ([2, 3, 4].includes(years % 10) && ![12, 13, 14].includes(years % 100)) {
-                    return 'года';
-                } else {
-                    return 'лет';
-                }
-            }
-
-            function formatMoAValues(value) {
-                if (value === null || value === undefined) return '—';
-                if (Array.isArray(value)) return value.join(', ');
-                return value.toString();
-            }
-
-            function getMoALabelByCategory(categoryName) {
-                const normalized = (categoryName || '').toLowerCase();
-
-                if (normalized.includes('фунгиц')) return 'FRAC - код';
-                if (normalized.includes('инсектиц')) return 'IRAC - код';
-                if (normalized.includes('гербиц')) return 'HRAC - код';
-
-                return 'MoA - код';
-            }
-
-            function normalizeMoAValue(value) {
-                if (value === null || value === undefined) return '';
-
-                if (Array.isArray(value)) {
-                    return value
-                        .map(item => item?.toString().trim().toLowerCase())
-                        .filter(Boolean)
-                        .sort()
-                        .join('|');
-                }
-
-                return value.toString().trim().toLowerCase();
             }
 
             // Отображение результатов
@@ -880,7 +887,7 @@
             } else {
                 treatmentCostElement.textContent = 'н/д';
             }
-                
+
             // Расчет нормы расхода на 10л жидкости
             let rateFor10L, rateUnit;
             if (objectData.unit.includes('кг')) {
@@ -890,6 +897,14 @@
                 rateFor10L = (rate / liquidRate * 1000) * 10; // в мл
                 rateUnit = 'мл/10 л';
             }
+
+            const formatRateValue = (value) => {
+                if (!Number.isFinite(value)) return '—';
+                return value % 1 === 0 ? value.toFixed(0) : value.toFixed(2);
+            };
+
+            const waitInterval = (objectData.preHarvestInterval ?? pesticideInfo.preHarvestInterval ?? '').toString().trim();
+            const numberOfTreatments = (objectData.numberOfTreatments ?? pesticideInfo.numberOfTreatments ?? '').toString().trim();
 
             // Поиск аналогов
             const currentIngredients = pesticideInfo.activeIngredients || {}; // объект { вещество: концентрация }
@@ -934,12 +949,25 @@
 
             // Особенности применения
             const applicationFeatures = document.getElementById('applicationFeatures');
+            const applicationLines = [
+                `• Норма расхода препарата: ${formatRateValue(rate)} л/га`,
+                `• Расход рабочей жидкости: ${liquidRate.toFixed(0)} л/га`
+            ];
+
+            if (waitInterval) {
+                applicationLines.push(`• Срок ожидания: ${waitInterval}`);
+            }
+
+            if (numberOfTreatments) {
+                applicationLines.push(`• Кратность обработок: ${numberOfTreatments}`);
+            }
+
+            applicationLines.push(`<strong>• Норма расхода препарата на 10 л. воды: ${rateFor10L.toFixed(1)} ${rateUnit}</strong>`);
+
             applicationFeatures.innerHTML = `
                 <strong>Особенности применения:</strong><br>
-                ${objectData.features}<br><br>
-                • Норма расхода: ${rateFor10L.toFixed(1)} ${rateUnit}<br>
-                • Расход рабочей жидкости: ${liquidRate.toFixed(0)} л/га<br>
-                • Обрабатываемая площадь: ${formatArea(area, areaUnit)}
+                ${objectData.features || '—'}<br><br>
+                ${applicationLines.join('<br>')}
             `;
             
             // Дополнительная информация
@@ -954,6 +982,15 @@
             const chemicalClass = pesticideInfo.chemicalClass || pesticideInfo.chemicalСlass || '—';
             const moALabel = getMoALabelByCategory(pesticideInfo.category || objectData.category || '');
             const moAFormatted = formatMoAValues(pesticideInfo.moA);
+            const rawPackaging = pesticideInfo.packaging;
+            const hasNumericPackaging = Number.isFinite(packagingVolume) && packagingVolume > 0;
+            const packagingText = hasNumericPackaging
+                ? `${packagingVolume} ${packagingUnit}`
+                : (rawPackaging ? rawPackaging.toString() : '—');
+            const pricePerPackageText = pricePerPackage !== null
+                ? `${pricePerPackage.toFixed(2)} ₽${packagingText !== '—' ? ` за упаковку ${packagingText}` : ''}`
+                : 'н/д';
+
             additionalInfo.innerHTML = `
                 <strong>Информация о препарате:</strong><br>
                 • Форма: ${pesticideInfo.form}<br>
@@ -962,7 +999,8 @@
                 • ${moALabel}: ${moAFormatted}<br>
                 • Производитель: ${pesticideInfo.manufactory}<br>
                 • Срок годности: ${pesticideInfo.expirationDate} ${getYearWord(pesticideInfo.expirationDate)}<br>
-                • Упаковка: ${pesticideInfo.packaging} ${packagingUnit}
+                • Упаковка: ${packagingText}<br>
+                • Цена за упаковку: ${pricePerPackageText}
             `;
 
             // Информация об аналогах
