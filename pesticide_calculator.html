@@ -954,14 +954,6 @@
                 `• Расход рабочей жидкости: ${liquidRate.toFixed(0)} л/га`
             ];
 
-            if (waitInterval) {
-                applicationLines.push(`• Срок ожидания: ${waitInterval}`);
-            }
-
-            if (numberOfTreatments) {
-                applicationLines.push(`• Кратность обработок: ${numberOfTreatments}`);
-            }
-
             applicationLines.push(`<strong>• Норма расхода препарата на 10 л. воды: ${rateFor10L.toFixed(1)} ${rateUnit}</strong>`);
 
             applicationFeatures.innerHTML = `
