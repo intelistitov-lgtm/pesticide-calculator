@@ -820,7 +820,12 @@
                                 const option = document.createElement('option');
                                 const moAText = group.label && group.label !== '—' ? group.label : '—';
                                 option.value = name;
-                                option.textContent = buildPesticideOptionLabel(name, pesticideData[name], `${moALabel} ${moAText} —`);
+                                option.textContent = buildPesticideOptionLabel(
+                                    name,
+                                    pesticideData[name],
+                                    `${moALabel} ${moAText} —`,
+                                    { useShortForm: true }
+                                );
                                 optgroup.appendChild(option);
                             });
 
@@ -977,13 +982,27 @@
             return value.toString();
         }
 
-        function getPesticideDetails(productData) {
+        function getShortFormValue(formValue) {
+            if (!formValue) return '';
+
+            const text = formValue.toString();
+            const shortPart = text.split('(')[0].trim();
+
+            return shortPart || '';
+        }
+
+        function getPesticideDetails(productData, options = {}) {
             if (!productData) return '';
+
+            const { useShortForm = false } = options;
 
             const parts = [];
 
             if (productData.form) {
-                parts.push(productData.form);
+                const formValue = useShortForm ? getShortFormValue(productData.form) : productData.form;
+                if (formValue) {
+                    parts.push(formValue);
+                }
             }
 
             const activeIngredientInfo = productData.activeIngredientInfo || '';
@@ -1001,8 +1020,8 @@
             return parts.join(', ');
         }
 
-        function buildPesticideOptionLabel(name, productData, prefixText = '') {
-            const details = getPesticideDetails(productData);
+        function buildPesticideOptionLabel(name, productData, prefixText = '', options = {}) {
+            const details = getPesticideDetails(productData, options);
             const baseLabel = details ? `${name} (${details})` : name;
             return prefixText ? `${prefixText} ${baseLabel}` : baseLabel;
         }
