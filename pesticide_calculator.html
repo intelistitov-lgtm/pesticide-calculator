@@ -513,6 +513,7 @@
         }
 
         // DOM элементы
+        const categoryGroup = document.getElementById('category').closest('.form-group');
         const categorySelect = document.getElementById('category');
         const pesticideSelect = document.getElementById('pesticide');
         const cultureSelect = document.getElementById('culture');
@@ -605,17 +606,27 @@
         function updateLabelsForMode() {
             const isProductMode = currentMode === modes.product;
             const subjectLabel = currentMode === modes.pest ? '1. Вредитель:' : '1. Патоген:';
-            const offset = isProductMode ? 0 : 1;
 
             modeSubjectGroup.style.display = isProductMode ? 'none' : 'block';
+            categoryGroup.style.display = isProductMode ? 'block' : 'none';
+
             modeSubjectLabel.textContent = subjectLabel;
-            categoryLabel.textContent = `${1 + offset}. Категория пестицидов:`;
-            pesticideLabel.textContent = `${2 + offset}. Наименование препарата:`;
-            cultureLabel.textContent = `${3 + offset}. Культура, обрабатываемый объект:`;
-            harmfulObjectLabel.textContent = `${4 + offset}. Вредный объект:`;
-            intensityLabel.textContent = `${5 + offset}. Концентрация препарата:`;
-            areaLabel.textContent = `${6 + offset}. Площадь обработки:`;
-            tankVolumeLabel.textContent = `${7 + offset}. Объем бака опрыскивателя (л):`;
+            if (isProductMode) {
+                categoryLabel.textContent = '1. Категория пестицидов:';
+                pesticideLabel.textContent = '2. Наименование препарата:';
+                cultureLabel.textContent = '3. Культура, обрабатываемый объект:';
+                harmfulObjectLabel.textContent = '4. Вредный объект:';
+                intensityLabel.textContent = '5. Концентрация препарата:';
+                areaLabel.textContent = '6. Площадь обработки:';
+                tankVolumeLabel.textContent = '7. Объем бака опрыскивателя (л):';
+            } else {
+                pesticideLabel.textContent = '2. Наименование препарата:';
+                cultureLabel.textContent = '3. Культура, обрабатываемый объект:';
+                harmfulObjectLabel.textContent = '4. Вредный объект:';
+                intensityLabel.textContent = '5. Концентрация препарата:';
+                areaLabel.textContent = '6. Площадь обработки:';
+                tankVolumeLabel.textContent = '7. Объем бака опрыскивателя (л):';
+            }
         }
 
         function updateModeSubjectOptions() {
@@ -636,9 +647,9 @@
         function resetWorkflowSelects() {
             const firstStepPlaceholder = currentMode === modes.product
                 ? 'Выберите категорию'
-                : 'Категория определится после выбора препарата';
+                : '';
 
-            resetSelect(categorySelect, firstStepPlaceholder, currentMode !== modes.product);
+            resetSelect(categorySelect, firstStepPlaceholder || 'Категория определится после выбора препарата', currentMode !== modes.product);
 
             const pesticidePlaceholder = currentMode === modes.product
                 ? 'Сначала выберите категорию'
