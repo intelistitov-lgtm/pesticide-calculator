@@ -80,6 +80,16 @@
             font-size: 1.1em;
         }
 
+        .pesticide-warning {
+            background: rgba(255, 99, 71, 0.12);
+            border: 1px solid rgba(255, 99, 71, 0.4);
+            color: #c0392b;
+            padding: 10px 14px;
+            border-radius: 10px;
+            margin-bottom: 10px;
+            font-weight: 600;
+        }
+
         select, input[type="number"] {
             width: 100%;
             padding: 12px 15px;
@@ -376,6 +386,9 @@
 
             <div class="form-group">
                 <label for="pesticide" id="pesticideLabel">2. Наименование препарата:</label>
+                <div id="pesticideWarning" class="pesticide-warning" style="display: none;">
+                    Внимание! Не используйте препараты из одной и той же FRAC/IRAC группы подряд более 1–2 обработок.
+                </div>
                 <select id="pesticide" required disabled>
                     <option value="">Сначала выберите категорию</option>
                 </select>
@@ -545,6 +558,7 @@
         const intensityLabel = document.getElementById('intensityLabel');
         const areaLabel = document.getElementById('areaLabel');
         const tankVolumeLabel = document.getElementById('tankVolumeLabel');
+        const pesticideWarning = document.getElementById('pesticideWarning');
 
         const modes = {
             product: 'product',
@@ -590,6 +604,11 @@
                 console.error('Ошибка при получении цены препарата:', error);
                 return null;
             }
+        }
+
+        function updatePesticideWarning() {
+            const shouldShowWarning = currentMode === modes.disease || currentMode === modes.pest;
+            pesticideWarning.style.display = shouldShowWarning ? 'block' : 'none';
         }
 
         // Интенсивность обработки
@@ -673,6 +692,7 @@
 
             updateLabelsForMode();
             resetWorkflowSelects();
+            updatePesticideWarning();
 
             if (currentMode === modes.product) {
                 modeSubjectSelect.value = '';
@@ -769,7 +789,7 @@
                     .forEach(({ name }) => {
                         const option = document.createElement('option');
                         option.value = name;
-                        option.textContent = name;
+                        option.textContent = buildPesticideOptionLabel(name, pesticideData[name]);
                         pesticideSelect.appendChild(option);
                     });
             } else {
@@ -800,7 +820,7 @@
                                 const option = document.createElement('option');
                                 const moAText = group.label && group.label !== '—' ? group.label : '—';
                                 option.value = name;
-                                option.textContent = `${moALabel} ${moAText} — ${name}`;
+                                option.textContent = buildPesticideOptionLabel(name, pesticideData[name], `${moALabel} ${moAText} —`);
                                 optgroup.appendChild(option);
                             });
 
@@ -955,6 +975,36 @@
             if (value === null || value === undefined) return '—';
             if (Array.isArray(value)) return value.join(', ');
             return value.toString();
+        }
+
+        function getPesticideDetails(productData) {
+            if (!productData) return '';
+
+            const parts = [];
+
+            if (productData.form) {
+                parts.push(productData.form);
+            }
+
+            const activeIngredientInfo = productData.activeIngredientInfo || '';
+            const activeIngredient = productData.activeIngredient || '';
+            const activeIngredientConcentration = productData.activeIngredientConcentration;
+
+            if (activeIngredientInfo) {
+                parts.push(activeIngredientInfo);
+            } else if (activeIngredient && activeIngredientConcentration) {
+                parts.push(`${activeIngredient} ${activeIngredientConcentration}`);
+            } else if (activeIngredient) {
+                parts.push(activeIngredient);
+            }
+
+            return parts.join(', ');
+        }
+
+        function buildPesticideOptionLabel(name, productData, prefixText = '') {
+            const details = getPesticideDetails(productData);
+            const baseLabel = details ? `${name} (${details})` : name;
+            return prefixText ? `${prefixText} ${baseLabel}` : baseLabel;
         }
 
         function getMoALabelByCategory(categoryName) {
