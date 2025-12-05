@@ -789,7 +789,12 @@
                     .forEach(({ name }) => {
                         const option = document.createElement('option');
                         option.value = name;
-                        option.textContent = buildPesticideOptionLabel(name, pesticideData[name]);
+                        option.textContent = buildPesticideOptionLabel(
+                            name,
+                            pesticideData[name],
+                            '',
+                            { showDetails: false }
+                        );
                         pesticideSelect.appendChild(option);
                     });
             } else {
@@ -1021,7 +1026,8 @@
         }
 
         function buildPesticideOptionLabel(name, productData, prefixText = '', options = {}) {
-            const details = getPesticideDetails(productData, options);
+            const { useShortForm = false, showDetails = true } = options;
+            const details = showDetails ? getPesticideDetails(productData, { useShortForm }) : '';
             const baseLabel = details ? `${name} (${details})` : name;
             return prefixText ? `${prefixText} ${baseLabel}` : baseLabel;
         }
