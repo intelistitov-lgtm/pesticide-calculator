@@ -541,6 +541,7 @@
         const pesticideLabel = document.getElementById('pesticideLabel');
         const cultureLabel = document.getElementById('cultureLabel');
         const harmfulObjectLabel = document.getElementById('harmfulObjectLabel');
+        const harmfulObjectGroup = harmfulObjectSelect.closest('.form-group');
         const intensityLabel = document.getElementById('intensityLabel');
         const areaLabel = document.getElementById('areaLabel');
         const tankVolumeLabel = document.getElementById('tankVolumeLabel');
@@ -609,6 +610,7 @@
 
             modeSubjectGroup.style.display = isProductMode ? 'none' : 'block';
             categoryGroup.style.display = isProductMode ? 'block' : 'none';
+            harmfulObjectGroup.style.display = isProductMode ? 'block' : 'none';
 
             modeSubjectLabel.textContent = subjectLabel;
             if (isProductMode) {
@@ -622,10 +624,9 @@
             } else {
                 pesticideLabel.textContent = '2. Наименование препарата:';
                 cultureLabel.textContent = '3. Культура, обрабатываемый объект:';
-                harmfulObjectLabel.textContent = '4. Вредный объект:';
-                intensityLabel.textContent = '5. Концентрация препарата:';
-                areaLabel.textContent = '6. Площадь обработки:';
-                tankVolumeLabel.textContent = '7. Объем бака опрыскивателя (л):';
+                intensityLabel.textContent = '4. Концентрация препарата:';
+                areaLabel.textContent = '5. Площадь обработки:';
+                tankVolumeLabel.textContent = '6. Объем бака опрыскивателя (л):';
             }
         }
 
@@ -658,7 +659,9 @@
             resetSelect(pesticideSelect, pesticidePlaceholder);
             resetSelect(cultureSelect, 'Сначала выберите препарат');
             resetSelect(harmfulObjectSelect, 'Сначала выберите культуру');
-            resetSelect(intensitySelect, 'Сначала выберите вредный объект');
+            resetSelect(intensitySelect, currentMode === modes.product
+                ? 'Сначала выберите вредный объект'
+                : 'Сначала выберите культуру');
             resultsDiv.classList.remove('show');
         }
 
@@ -855,8 +858,13 @@
         function updateHarmfulObjectOptions() {
             const pesticide = pesticideSelect.value;
             const culture = cultureSelect.value;
-            resetSelect(harmfulObjectSelect, 'Выберите вредный объект');
-            resetSelect(intensitySelect, 'Сначала выберите вредный объект');
+            const harmfulPlaceholder = currentMode === modes.product ? 'Выберите вредный объект' : '';
+            const intensityPlaceholder = currentMode === modes.product
+                ? 'Сначала выберите вредный объект'
+                : 'Сначала выберите культуру';
+
+            resetSelect(harmfulObjectSelect, harmfulPlaceholder);
+            resetSelect(intensitySelect, intensityPlaceholder);
 
             if (!(pesticide && culture && pesticideData[pesticide]?.cultures[culture])) {
                 harmfulObjectSelect.disabled = true;
@@ -877,16 +885,24 @@
                 return;
             }
 
-            harmfulObjectSelect.disabled = false;
+            if (currentMode === modes.product) {
+                harmfulObjectSelect.disabled = false;
 
-            matchingHarmfulObjects
-                .sort((a, b) => a.localeCompare(b, 'ru'))
-                .forEach(harmfulObject => {
-                    const option = document.createElement('option');
-                    option.value = harmfulObject;
-                    option.textContent = harmfulObject;
-                    harmfulObjectSelect.appendChild(option);
-                });
+                matchingHarmfulObjects
+                    .sort((a, b) => a.localeCompare(b, 'ru'))
+                    .forEach(harmfulObject => {
+                        const option = document.createElement('option');
+                        option.value = harmfulObject;
+                        option.textContent = harmfulObject;
+                        harmfulObjectSelect.appendChild(option);
+                    });
+            } else {
+                const selectedHarmfulObject = matchingHarmfulObjects.sort((a, b) => a.localeCompare(b, 'ru'))[0];
+                harmfulObjectSelect.innerHTML = `<option value="${escapeHtml(selectedHarmfulObject)}">${escapeHtml(selectedHarmfulObject)}</option>`;
+                harmfulObjectSelect.value = selectedHarmfulObject;
+                harmfulObjectSelect.disabled = true;
+                updateIntensityOptions();
+            }
         }
 
         function updateIntensityOptions() {
