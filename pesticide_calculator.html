@@ -37,6 +37,37 @@
             text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.1);
         }
 
+        .mode-toggle {
+            display: flex;
+            justify-content: center;
+            gap: 10px;
+            margin: 0 auto 25px;
+            max-width: 600px;
+        }
+
+        .mode-button {
+            flex: 1;
+            border: 2px solid #667eea;
+            background: white;
+            color: #667eea;
+            padding: 12px 16px;
+            border-radius: 999px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.25s ease;
+        }
+
+        .mode-button.active {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: #fff;
+            box-shadow: 0 12px 30px rgba(102, 126, 234, 0.35);
+        }
+
+        .mode-button:focus-visible {
+            outline: 3px solid rgba(102, 126, 234, 0.35);
+            outline-offset: 2px;
+        }
+
         .form-group {
             margin-bottom: 25px;
         }
@@ -321,45 +352,58 @@
         <h1>
             Калькулятор нормы расхода пестицидов
         </h1>
-        
+
+        <div class="mode-toggle" role="group" aria-label="Режим работы калькулятора">
+            <button type="button" class="mode-button active" data-mode="product">По препарату</button>
+            <button type="button" class="mode-button" data-mode="disease">По болезни</button>
+            <button type="button" class="mode-button" data-mode="pest">По вредителю</button>
+        </div>
+
         <form id="calculatorForm">
+            <div class="form-group" id="modeSubjectGroup" style="display: none;">
+                <label for="modeSubject" id="modeSubjectLabel">1. Патоген:</label>
+                <select id="modeSubject" disabled>
+                    <option value="">Выберите патоген</option>
+                </select>
+            </div>
+
             <div class="form-group">
-                <label for="category">1. Категория пестицидов:</label>
+                <label for="category" id="categoryLabel">1. Категория пестицидов:</label>
                 <select id="category" required disabled>
                     <option value="">Выберите категорию</option>
                 </select>
             </div>
 
             <div class="form-group">
-                <label for="pesticide">2. Наименование препарата:</label>
+                <label for="pesticide" id="pesticideLabel">2. Наименование препарата:</label>
                 <select id="pesticide" required disabled>
                     <option value="">Сначала выберите категорию</option>
                 </select>
             </div>
 
             <div class="form-group">
-                <label for="culture">3. Культура, обрабатываемый объект:</label>
+                <label for="culture" id="cultureLabel">3. Культура, обрабатываемый объект:</label>
                 <select id="culture" required disabled>
                     <option value="">Сначала выберите препарат</option>
                 </select>
             </div>
 
             <div class="form-group">
-                <label for="harmfulObject">4. Вредный объект:</label>
+                <label for="harmfulObject" id="harmfulObjectLabel">4. Вредный объект:</label>
                 <select id="harmfulObject" required disabled>
                     <option value="">Сначала выберите культуру</option>
                 </select>
             </div>
 
             <div class="form-group">
-                <label for="intensity">5. Концентрация препарата:</label>
+                <label for="intensity" id="intensityLabel">5. Концентрация препарата:</label>
                 <select id="intensity" required disabled>
                     <option value="">Сначала выберите вредный объект</option>
                 </select>
             </div>
 
             <div class="form-group">
-                <label for="area">6. Площадь обработки:</label>
+                <label for="area" id="areaLabel">6. Площадь обработки:</label>
                 <div class="area-input-group">
                     <input type="number" id="area" step="0.01" min="0.01" required>
                     <select id="areaUnit">
@@ -371,7 +415,7 @@
             </div>
 
             <div class="form-group">
-                <label for="tankVolume">7. Объем бака опрыскивателя (л):</label>
+                <label for="tankVolume" id="tankVolumeLabel">7. Объем бака опрыскивателя (л):</label>
                 <input type="number" id="tankVolume" step="0.1" min="0.1" required>
             </div>
 
@@ -488,6 +532,25 @@
         const analogModalPrice = document.getElementById('analogModalPrice');
         const analogModalBuyButton = document.getElementById('analogModalBuyButton');
         const analogModalCloseButton = analogModal.querySelector('.modal-close');
+        const modeButtons = document.querySelectorAll('.mode-button');
+        const modeSubjectGroup = document.getElementById('modeSubjectGroup');
+        const modeSubjectSelect = document.getElementById('modeSubject');
+        const modeSubjectLabel = document.getElementById('modeSubjectLabel');
+        const categoryLabel = document.getElementById('categoryLabel');
+        const pesticideLabel = document.getElementById('pesticideLabel');
+        const cultureLabel = document.getElementById('cultureLabel');
+        const harmfulObjectLabel = document.getElementById('harmfulObjectLabel');
+        const intensityLabel = document.getElementById('intensityLabel');
+        const areaLabel = document.getElementById('areaLabel');
+        const tankVolumeLabel = document.getElementById('tankVolumeLabel');
+
+        const modes = {
+            product: 'product',
+            disease: 'disease',
+            pest: 'pest'
+        };
+
+        let currentMode = modes.product;
 
         analogModalBuyButton.style.display = 'none';
 
@@ -534,7 +597,106 @@
             'maximum': { label: 'Максимум', value: 'maximum' }
         };
 
+        function resetSelect(selectElement, placeholder, disabled = true) {
+            selectElement.innerHTML = `<option value="">${placeholder}</option>`;
+            selectElement.disabled = disabled;
+        }
+
+        function updateLabelsForMode() {
+            const isProductMode = currentMode === modes.product;
+            const subjectLabel = currentMode === modes.pest ? '1. Вредитель:' : '1. Патоген:';
+            const offset = isProductMode ? 0 : 1;
+
+            modeSubjectGroup.style.display = isProductMode ? 'none' : 'block';
+            modeSubjectLabel.textContent = subjectLabel;
+            categoryLabel.textContent = `${1 + offset}. Категория пестицидов:`;
+            pesticideLabel.textContent = `${2 + offset}. Наименование препарата:`;
+            cultureLabel.textContent = `${3 + offset}. Культура, обрабатываемый объект:`;
+            harmfulObjectLabel.textContent = `${4 + offset}. Вредный объект:`;
+            intensityLabel.textContent = `${5 + offset}. Концентрация препарата:`;
+            areaLabel.textContent = `${6 + offset}. Площадь обработки:`;
+            tankVolumeLabel.textContent = `${7 + offset}. Объем бака опрыскивателя (л):`;
+        }
+
+        function updateModeSubjectOptions() {
+            if (currentMode === modes.product) return;
+
+            const placeholder = currentMode === modes.disease
+                ? 'Выберите патоген'
+                : 'Выберите вредителя';
+
+            resetSelect(modeSubjectSelect, placeholder, false);
+
+            const option = document.createElement('option');
+            option.value = currentMode === modes.disease ? 'Мучнистая роса' : 'Пьявица';
+            option.textContent = option.value;
+            modeSubjectSelect.appendChild(option);
+        }
+
+        function resetWorkflowSelects() {
+            const firstStepPlaceholder = currentMode === modes.product
+                ? 'Выберите категорию'
+                : 'Категория определится после выбора препарата';
+
+            resetSelect(categorySelect, firstStepPlaceholder, currentMode !== modes.product);
+
+            const pesticidePlaceholder = currentMode === modes.product
+                ? 'Сначала выберите категорию'
+                : `Сначала выберите ${currentMode === modes.disease ? 'патоген' : 'вредителя'}`;
+
+            resetSelect(pesticideSelect, pesticidePlaceholder);
+            resetSelect(cultureSelect, 'Сначала выберите препарат');
+            resetSelect(harmfulObjectSelect, 'Сначала выберите культуру');
+            resetSelect(intensitySelect, 'Сначала выберите вредный объект');
+            resultsDiv.classList.remove('show');
+        }
+
+        function setMode(mode) {
+            currentMode = mode;
+            modeButtons.forEach(button => {
+                button.classList.toggle('active', button.dataset.mode === mode);
+            });
+
+            updateLabelsForMode();
+            resetWorkflowSelects();
+
+            if (currentMode === modes.product) {
+                modeSubjectSelect.value = '';
+                modeSubjectSelect.disabled = true;
+                populateCategories();
+            } else {
+                updateModeSubjectOptions();
+            }
+        }
+
+        function setCategoryFromProduct(productData) {
+            const categoryValue = productData?.category || '';
+            const label = categoryValue || 'Категория не указана';
+            categorySelect.innerHTML = `<option value="${escapeHtml(label)}">${escapeHtml(label)}</option>`;
+            categorySelect.value = categoryValue;
+            categorySelect.disabled = currentMode !== modes.product;
+        }
+
+        function productSupportsTarget(productData, targetText) {
+            if (!productData || !targetText) return false;
+
+            const categoryName = (productData.category || '').toLowerCase();
+            if (currentMode === modes.disease && !categoryName.includes('фунгиц')) return false;
+            if (currentMode === modes.pest && !categoryName.includes('инсектиц')) return false;
+
+            const cultures = productData.cultures || {};
+
+            return Object.values(cultures).some(harmfulObjects =>
+                Object.keys(harmfulObjects).some(harmful => harmful.toLowerCase().includes(targetText))
+            );
+        }
+
         // Обработчики событий
+        modeButtons.forEach(button => {
+            button.addEventListener('click', () => setMode(button.dataset.mode));
+        });
+
+        modeSubjectSelect.addEventListener('change', updatePesticideOptions);
         categorySelect.addEventListener('change', updatePesticideOptions);
         pesticideSelect.addEventListener('change', updateCultureOptions);
         cultureSelect.addEventListener('change', updateHarmfulObjectOptions);
@@ -542,82 +704,187 @@
         form.addEventListener('submit', calculateResults);
 
         function updatePesticideOptions() {
-            const category = categorySelect.value;
-            pesticideSelect.innerHTML = '<option value="">Выберите препарат</option>';
-            cultureSelect.innerHTML = '<option value="">Сначала выберите препарат</option>';
-            harmfulObjectSelect.innerHTML = '<option value="">Сначала выберите культуру</option>';
-            intensitySelect.innerHTML = '<option value="">Сначала выберите вредный объект</option>';
-            
-            if (category) {
-                pesticideSelect.disabled = false;
-                const pesticides = Object.keys(pesticideData).filter(key => pesticideData[key].category === category).sort();
-                
-                for (const pesticide of pesticides) {
-                    const option = document.createElement('option');
-                    option.value = pesticide;
-                    option.textContent = pesticide;
-                    pesticideSelect.appendChild(option);
+            const targetText = modeSubjectSelect.value.trim().toLowerCase();
+            resetSelect(pesticideSelect, 'Выберите препарат');
+            resetSelect(cultureSelect, 'Сначала выберите препарат');
+            resetSelect(harmfulObjectSelect, 'Сначала выберите культуру');
+            resetSelect(intensitySelect, 'Сначала выберите вредный объект');
+
+            let matchingProducts = [];
+
+            if (currentMode === modes.product) {
+                const category = categorySelect.value;
+                if (!category) {
+                    pesticideSelect.disabled = true;
+                    cultureSelect.disabled = true;
+                    harmfulObjectSelect.disabled = true;
+                    intensitySelect.disabled = true;
+                    return;
                 }
+
+                matchingProducts = Object.keys(pesticideData)
+                    .filter(key => pesticideData[key].category === category)
+                    .map(name => ({ name, data: pesticideData[name] }));
             } else {
+                if (!targetText) {
+                    pesticideSelect.disabled = true;
+                    cultureSelect.disabled = true;
+                    harmfulObjectSelect.disabled = true;
+                    intensitySelect.disabled = true;
+                    return;
+                }
+
+                matchingProducts = Object.entries(pesticideData)
+                    .filter(([, data]) => productSupportsTarget(data, targetText))
+                    .map(([name, data]) => ({ name, data }));
+            }
+
+            if (matchingProducts.length === 0) {
                 pesticideSelect.disabled = true;
                 cultureSelect.disabled = true;
                 harmfulObjectSelect.disabled = true;
                 intensitySelect.disabled = true;
+                return;
+            }
+
+            pesticideSelect.disabled = false;
+
+            if (currentMode === modes.product) {
+                matchingProducts
+                    .sort((a, b) => a.name.localeCompare(b.name, 'ru'))
+                    .forEach(({ name }) => {
+                        const option = document.createElement('option');
+                        option.value = name;
+                        option.textContent = name;
+                        pesticideSelect.appendChild(option);
+                    });
+            } else {
+                const moALabel = currentMode === modes.disease ? 'FRAC' : 'IRAC';
+                const groupedProducts = new Map();
+
+                matchingProducts.forEach(product => {
+                    const normalizedMoA = normalizeMoAValue(product.data.moA) || '—';
+                    const displayMoA = formatMoAValues(product.data.moA) || '—';
+
+                    if (!groupedProducts.has(normalizedMoA)) {
+                        groupedProducts.set(normalizedMoA, { label: displayMoA, items: [] });
+                    }
+
+                    groupedProducts.get(normalizedMoA).items.push(product);
+                });
+
+                Array.from(groupedProducts.values())
+                    .sort((a, b) => a.label.localeCompare(b.label, 'ru'))
+                    .forEach(group => {
+                        const readableLabel = group.label && group.label !== '—' ? group.label : 'без кода';
+                        const optgroup = document.createElement('optgroup');
+                        optgroup.label = `${moALabel} ${readableLabel}`.trim();
+
+                        group.items
+                            .sort((a, b) => a.name.localeCompare(b.name, 'ru'))
+                            .forEach(({ name }) => {
+                                const option = document.createElement('option');
+                                const moAText = group.label && group.label !== '—' ? group.label : '—';
+                                option.value = name;
+                                option.textContent = `${moALabel} ${moAText} — ${name}`;
+                                optgroup.appendChild(option);
+                            });
+
+                        pesticideSelect.appendChild(optgroup);
+                    });
             }
         }
 
         function updateCultureOptions() {
             const pesticide = pesticideSelect.value;
-            cultureSelect.innerHTML = '<option value="">Выберите культуру/объект</option>';
-            harmfulObjectSelect.innerHTML = '<option value="">Сначала выберите культуру</option>';
-            intensitySelect.innerHTML = '<option value="">Сначала выберите вредный объект</option>';
-            
-            if (pesticide && pesticideData[pesticide]) {
-                cultureSelect.disabled = false;
-                const cultures = Object.keys(pesticideData[pesticide].cultures).sort();
-                
-                for (const culture of cultures) {
+            resetSelect(cultureSelect, 'Выберите культуру/объект');
+            resetSelect(harmfulObjectSelect, 'Сначала выберите культуру');
+            resetSelect(intensitySelect, 'Сначала выберите вредный объект');
+
+            if (!(pesticide && pesticideData[pesticide])) {
+                cultureSelect.disabled = true;
+                harmfulObjectSelect.disabled = true;
+                intensitySelect.disabled = true;
+                return;
+            }
+
+            const productData = pesticideData[pesticide];
+            if (currentMode !== modes.product) {
+                setCategoryFromProduct(productData);
+            }
+
+            const targetText = modeSubjectSelect.value.trim().toLowerCase();
+            const cultures = Object.keys(productData.cultures || {});
+
+            const matchingCultures = currentMode === modes.product
+                ? cultures
+                : cultures.filter(culture =>
+                    Object.keys(productData.cultures[culture]).some(harmful => harmful.toLowerCase().includes(targetText))
+                );
+
+            if (matchingCultures.length === 0) {
+                cultureSelect.disabled = true;
+                harmfulObjectSelect.disabled = true;
+                intensitySelect.disabled = true;
+                return;
+            }
+
+            cultureSelect.disabled = false;
+
+            matchingCultures
+                .sort((a, b) => a.localeCompare(b, 'ru'))
+                .forEach(culture => {
                     const option = document.createElement('option');
                     option.value = culture;
                     option.textContent = culture;
                     cultureSelect.appendChild(option);
-                }
-            } else {
-                cultureSelect.disabled = true;
-                harmfulObjectSelect.disabled = true;
-                intensitySelect.disabled = true;
-            }
+                });
         }
 
         function updateHarmfulObjectOptions() {
             const pesticide = pesticideSelect.value;
             const culture = cultureSelect.value;
-            harmfulObjectSelect.innerHTML = '<option value="">Выберите вредный объект</option>';
-            intensitySelect.innerHTML = '<option value="">Сначала выберите вредный объект</option>';
-            
-            if (pesticide && culture && pesticideData[pesticide].cultures[culture]) {
-                harmfulObjectSelect.disabled = false;
-                const harmfulObjects = Object.keys(pesticideData[pesticide].cultures[culture]).sort();
-                
-                for (const harmfulObject of harmfulObjects) {
+            resetSelect(harmfulObjectSelect, 'Выберите вредный объект');
+            resetSelect(intensitySelect, 'Сначала выберите вредный объект');
+
+            if (!(pesticide && culture && pesticideData[pesticide]?.cultures[culture])) {
+                harmfulObjectSelect.disabled = true;
+                intensitySelect.disabled = true;
+                return;
+            }
+
+            const targetText = modeSubjectSelect.value.trim().toLowerCase();
+            const harmfulObjects = Object.keys(pesticideData[pesticide].cultures[culture]);
+
+            const matchingHarmfulObjects = currentMode === modes.product
+                ? harmfulObjects
+                : harmfulObjects.filter(harmful => harmful.toLowerCase().includes(targetText));
+
+            if (matchingHarmfulObjects.length === 0) {
+                harmfulObjectSelect.disabled = true;
+                intensitySelect.disabled = true;
+                return;
+            }
+
+            harmfulObjectSelect.disabled = false;
+
+            matchingHarmfulObjects
+                .sort((a, b) => a.localeCompare(b, 'ru'))
+                .forEach(harmfulObject => {
                     const option = document.createElement('option');
                     option.value = harmfulObject;
                     option.textContent = harmfulObject;
                     harmfulObjectSelect.appendChild(option);
-                }
-            } else {
-                harmfulObjectSelect.disabled = true;
-                intensitySelect.disabled = true;
-            }
+                });
         }
 
         function updateIntensityOptions() {
             const harmfulObject = harmfulObjectSelect.value;
             intensitySelect.innerHTML = '<option value="">Выберите интенсивность обработки</option>';
-            
+
             if (harmfulObject) {
                 intensitySelect.disabled = false;
-                
+
                 for (const intensity in intensityOptions) {
                     const option = document.createElement('option');
                     option.value = intensity;
@@ -1026,6 +1293,9 @@
             resultsDiv.scrollIntoView({ behavior: 'smooth' });
         }
     
+        // стартовое состояние
+        setMode(currentMode);
+
         // вызов загрузки
         loadJSON();
     </script>
