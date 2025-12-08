@@ -829,7 +829,7 @@
                                     name,
                                     pesticideData[name],
                                     `${moALabel} ${moAText} —`,
-                                    { useShortForm: true }
+                                    { useShortForm: true, includeActiveIngredients: false }
                                 );
                                 optgroup.appendChild(option);
                             });
@@ -999,7 +999,7 @@
         function getPesticideDetails(productData, options = {}) {
             if (!productData) return '';
 
-            const { useShortForm = false } = options;
+            const { useShortForm = false, includeActiveIngredients = true } = options;
 
             const parts = [];
 
@@ -1010,24 +1010,28 @@
                 }
             }
 
-            const activeIngredientInfo = productData.activeIngredientInfo || '';
-            const activeIngredient = productData.activeIngredient || '';
-            const activeIngredientConcentration = productData.activeIngredientConcentration;
+            if (includeActiveIngredients) {
+                const activeIngredientInfo = productData.activeIngredientInfo || '';
+                const activeIngredient = productData.activeIngredient || '';
+                const activeIngredientConcentration = productData.activeIngredientConcentration;
 
-            if (activeIngredientInfo) {
-                parts.push(activeIngredientInfo);
-            } else if (activeIngredient && activeIngredientConcentration) {
-                parts.push(`${activeIngredient} ${activeIngredientConcentration}`);
-            } else if (activeIngredient) {
-                parts.push(activeIngredient);
+                if (activeIngredientInfo) {
+                    parts.push(activeIngredientInfo);
+                } else if (activeIngredient && activeIngredientConcentration) {
+                    parts.push(`${activeIngredient} ${activeIngredientConcentration}`);
+                } else if (activeIngredient) {
+                    parts.push(activeIngredient);
+                }
             }
 
             return parts.join(', ');
         }
 
         function buildPesticideOptionLabel(name, productData, prefixText = '', options = {}) {
-            const { useShortForm = false, showDetails = true } = options;
-            const details = showDetails ? getPesticideDetails(productData, { useShortForm }) : '';
+            const { useShortForm = false, showDetails = true, includeActiveIngredients = true } = options;
+            const details = showDetails
+                ? getPesticideDetails(productData, { useShortForm, includeActiveIngredients })
+                : '';
             const baseLabel = details ? `${name} (${details})` : name;
             return prefixText ? `${prefixText} ${baseLabel}` : baseLabel;
         }
