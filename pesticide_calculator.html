@@ -1393,10 +1393,9 @@
             const packagingVolume = Number(pesticideInfo.packaging);
             const pricePerPackage = await fetchProductPrice(pesticideInfo.url);
 
-            if (Number.isFinite(packagingVolume) && packagingVolume > 0 && pricePerPackage !== null && tankRefills && pesticidePerTank) {
+            if (Number.isFinite(packagingVolume) && packagingVolume > 0 && pricePerPackage !== null) {
                 const pricePerUnit = pricePerPackage / packagingVolume;
-                const costPerTank = pesticidePerTank * pricePerUnit;
-                const totalCost = costPerTank * tankRefills;
+                const totalCost = totalPesticide * pricePerUnit;
                 treatmentCostElement.textContent = formatRoundedCurrency(totalCost);
             } else {
                 treatmentCostElement.textContent = 'н/д';
