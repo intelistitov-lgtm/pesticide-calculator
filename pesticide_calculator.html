@@ -429,7 +429,7 @@
 
             <div class="form-group">
                 <label for="tankVolume" id="tankVolumeLabel">7. Объем бака опрыскивателя (л):</label>
-                <input type="number" id="tankVolume" step="0.1" min="0.1" required>
+                <input type="number" id="tankVolume" step="0.1" min="0.1">
             </div>
 
             <button type="submit" class="calculate-btn">Рассчитать</button>
@@ -1239,6 +1239,21 @@
                 .replace(/'/g, '&#39;');
         }
 
+        function formatRoundedCurrency(value) {
+            if (!Number.isFinite(value)) return 'н/д';
+            return `${Math.round(value)} ₽`;
+        }
+
+        function getRefillWord(count) {
+            const absCount = Math.abs(count) % 100;
+            const lastDigit = absCount % 10;
+
+            if (absCount > 10 && absCount < 20) return 'заправок';
+            if (lastDigit === 1) return 'заправка';
+            if (lastDigit >= 2 && lastDigit <= 4) return 'заправки';
+            return 'заправок';
+        }
+
         function openAnalogModal() {
             analogModal.classList.add('show');
             analogModal.setAttribute('aria-hidden', 'false');
@@ -1309,7 +1324,7 @@
 
             if (pricePerPackage !== null) {
                 const packageLabel = packagingText !== '—' ? ` за упаковку ${packagingText}` : '';
-                analogModalPrice.textContent = `Цена: ${pricePerPackage.toFixed(2)} ₽${packageLabel}`;
+                analogModalPrice.textContent = `Цена: ${formatRoundedCurrency(pricePerPackage)}${packageLabel}`;
             } else {
                 analogModalPrice.textContent = 'Цена: н/д';
             }
@@ -1326,8 +1341,9 @@
             const area = parseFloat(areaInput.value);
             const areaUnit = areaUnitSelect.value;
             const tankVolume = parseFloat(tankVolumeInput.value);
+            const hasTankVolume = Number.isFinite(tankVolume) && tankVolume > 0;
             
-            if (!category || !pesticide || !culture || !harmfulObject || !intensity || !area || !tankVolume) {
+            if (!category || !pesticide || !culture || !harmfulObject || !intensity || !area) {
                 alert('Пожалуйста, заполните все поля');
                 return;
             }
@@ -1345,8 +1361,8 @@
             const isKg = objectData.unit.includes('кг');
             
             // Расчет количества заправок и препарата на заправку
-            const tankRefills = Math.ceil(totalSolution / tankVolume);
-            const pesticidePerTank = totalPesticide / tankRefills;
+            const tankRefills = hasTankVolume ? Math.ceil(totalSolution / tankVolume) : null;
+            const pesticidePerTank = tankRefills ? totalPesticide / tankRefills : null;
 
             // Функция для форматирования количества препарата с правильными единицами
             function formatPesticideAmount(amount, isKg) {
@@ -1366,22 +1382,22 @@
             document.getElementById('totalPesticide').textContent =
                 formatPesticideAmount(totalPesticide, isKg);
             document.getElementById('totalSolution').textContent =
-                `${totalSolution.toFixed(1)} л`;
+                `${Math.round(totalSolution)} л`;
             document.getElementById('tankRefills').textContent = 
-                `${tankRefills} ${tankRefills === 1 ? 'заправка' : 'заправок'}`;
+                tankRefills ? `${tankRefills} ${getRefillWord(tankRefills)}` : '—';
             document.getElementById('pesticidePerTank').textContent =
-                formatPesticideAmount(pesticidePerTank, isKg);
+                pesticidePerTank ? formatPesticideAmount(pesticidePerTank, isKg) : '—';
 
             // Стоимость обработки
             treatmentCostElement.textContent = '—';
             const packagingVolume = Number(pesticideInfo.packaging);
             const pricePerPackage = await fetchProductPrice(pesticideInfo.url);
 
-            if (Number.isFinite(packagingVolume) && packagingVolume > 0 && pricePerPackage !== null) {
+            if (Number.isFinite(packagingVolume) && packagingVolume > 0 && pricePerPackage !== null && tankRefills && pesticidePerTank) {
                 const pricePerUnit = pricePerPackage / packagingVolume;
                 const costPerTank = pesticidePerTank * pricePerUnit;
                 const totalCost = costPerTank * tankRefills;
-                treatmentCostElement.textContent = `${totalCost.toFixed(2)} ₽`;
+                treatmentCostElement.textContent = formatRoundedCurrency(totalCost);
             } else {
                 treatmentCostElement.textContent = 'н/д';
             }
@@ -1478,7 +1494,7 @@
                 ? `${packagingVolume} ${packagingUnit}`
                 : (rawPackaging ? rawPackaging.toString() : '—');
             const pricePerPackageText = pricePerPackage !== null
-                ? `${pricePerPackage.toFixed(2)} ₽${packagingText !== '—' ? ` за упаковку ${packagingText}` : ''}`
+                ? `${formatRoundedCurrency(pricePerPackage)}${packagingText !== '—' ? ` за упаковку ${packagingText}` : ''}`
                 : 'н/д';
 
             additionalInfo.innerHTML = `
